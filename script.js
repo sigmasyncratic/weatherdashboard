@@ -12,6 +12,24 @@ const lowTempEl = document.getElementById('lowTemp');
 const rainChanceEl = document.getElementById('rainChance');
 const forecastCardsEl = document.getElementById('forecastCards');
 
+const defaultLatitude = 35.4676;
+const defaultLongitude = -97.5164;
+
+function parseCoordinates() {
+  const latitude = parseFloat(latitudeInput.value);
+  const longitude = parseFloat(longitudeInput.value);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+  return { latitude, longitude };
+}
+
+function setDefaultCoordinates() {
+  latitudeInput.value = defaultLatitude.toFixed(4);
+  longitudeInput.value = defaultLongitude.toFixed(4);
+  return { latitude: defaultLatitude, longitude: defaultLongitude };
+}
+
 const weatherCodeMap = {
   0: 'Clear sky',
   1: 'Mainly clear',
@@ -142,23 +160,26 @@ currentLocationBtn.addEventListener('click', async () => {
       fetchWeather(latitude, longitude);
     },
     (error) => {
-      updateStatus(`Location error: ${error.message}`, true);
+      updateStatus(
+        `Location unavailable: ${error.message}. Please enter coordinates manually or click Fetch Forecast.`,
+        true
+      );
     },
     { enableHighAccuracy: true, timeout: 12000 }
   );
 });
 
 fetchWeatherBtn.addEventListener('click', () => {
-  const latitude = parseFloat(latitudeInput.value);
-  const longitude = parseFloat(longitudeInput.value);
-  if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+  const coords = parseCoordinates();
+  if (!coords) {
     updateStatus('Please enter valid latitude and longitude values.', true);
     return;
   }
-  fetchWeather(latitude, longitude);
+  fetchWeather(coords.latitude, coords.longitude);
 });
 
-fetchWeather(parseFloat(latitudeInput.value), parseFloat(longitudeInput.value));
+const initialCoords = parseCoordinates() || setDefaultCoordinates();
+fetchWeather(initialCoords.latitude, initialCoords.longitude);
 
 // Auto-refresh every 15 minutes during business hours (7am-6pm Mon-Fri)
 function isBusinessHours() {
@@ -170,10 +191,9 @@ function isBusinessHours() {
 
 setInterval(() => {
   if (isBusinessHours()) {
-    const lat = parseFloat(latitudeInput.value);
-    const lon = parseFloat(longitudeInput.value);
-    if (!isNaN(lat) && !isNaN(lon)) {
-      fetchWeather(lat, lon);
+    const coords = parseCoordinates();
+    if (coords) {
+      fetchWeather(coords.latitude, coords.longitude);
     }
   }
 }, 15 * 60 * 1000); // 15 minutes

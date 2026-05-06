@@ -159,3 +159,21 @@ fetchWeatherBtn.addEventListener('click', () => {
 });
 
 fetchWeather(parseFloat(latitudeInput.value), parseFloat(longitudeInput.value));
+
+// Auto-refresh every 15 minutes during business hours (7am-6pm Mon-Fri)
+function isBusinessHours() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const hour = now.getHours();
+  return day >= 1 && day <= 5 && hour >= 7 && hour < 18;
+}
+
+setInterval(() => {
+  if (isBusinessHours()) {
+    const lat = parseFloat(latitudeInput.value);
+    const lon = parseFloat(longitudeInput.value);
+    if (!isNaN(lat) && !isNaN(lon)) {
+      fetchWeather(lat, lon);
+    }
+  }
+}, 15 * 60 * 1000); // 15 minutes

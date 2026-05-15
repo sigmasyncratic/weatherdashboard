@@ -1,4 +1,4 @@
-const statusEl = document.getElementById('status');
+const statusEl = document.getElementById('updated');
 const currentTempEl = document.getElementById('currentTemp');
 const currentWindEl = document.getElementById('currentWind');
 const currentGustEl = document.getElementById('currentGust');
@@ -83,14 +83,17 @@ function buildForecastCard(dateLabel, high, low, rainChance) {
       <div><span>High:</span> ${formatTemperature(high)}</div>
       <div><span>Low:</span> ${formatTemperature(low)}</div>
     </div>
-    <div>${formatPercentage(rainChance)}</div>
+    <div>
+      <div style="font-size:0.85rem;color:#9bb8d3;margin-bottom:6px;">Rain chance</div>
+      <div style="font-size:1.25rem">${formatPercentage(rainChance)}</div>
+    </div>
   `;
   return item;
 }
 
 function getDailyLabel(dateString) {
   return new Date(dateString).toLocaleDateString('en-US', {
-    weekday: 'short',
+    weekday: 'long',
     timeZone: 'America/Chicago',
   });
 }
@@ -170,13 +173,17 @@ async function fetchWeather(latitude, longitude) {
 
     currentTempEl.textContent = formatTemperature(currentWeather.temperature);
     currentWindEl.textContent = `${Math.round(currentWeather.windspeed)} mph`;
+    const hasGust = Array.isArray(hourly.wind_gusts_10m) && hourly.wind_gusts_10m.length > 0;
+    const hasUv = Array.isArray(hourly.uv_index) && hourly.uv_index.length > 0;
+    const hasAqi = Array.isArray(hourly.us_aqi) && hourly.us_aqi.length > 0;
+
     currentGustEl.textContent =
-      currentIndex >= 0 && hourly.wind_gusts_10m[currentIndex] != null
+      currentIndex >= 0 && hasGust && hourly.wind_gusts_10m[currentIndex] != null
         ? `${Math.round(hourly.wind_gusts_10m[currentIndex])} mph`
         : '--';
     currentConditionEl.textContent = getConditionText(currentWeather.weathercode);
     uvIndexEl.textContent =
-      currentIndex >= 0 && hourly.uv_index[currentIndex] != null
+      currentIndex >= 0 && hasUv && hourly.uv_index[currentIndex] != null
         ? `${hourly.uv_index[currentIndex].toFixed(1)}`
         : '--';
 
@@ -184,7 +191,7 @@ async function fetchWeather(latitude, longitude) {
     lowTempEl.textContent = formatTemperature(daily.temperature_2m_min[0]);
     rainChanceEl.textContent = formatPercentage(daily.precipitation_probability_max[0]);
 
-    const aqiValue = currentIndex >= 0 ? hourly.us_aqi[currentIndex] : null;
+    const aqiValue = currentIndex >= 0 && hasAqi ? hourly.us_aqi[currentIndex] : null;
     airQualityEl.textContent =
       aqiValue != null
         ? `${Math.round(aqiValue)} ${formatAqiCategory(Math.round(aqiValue))}`
@@ -209,7 +216,12 @@ async function fetchWeather(latitude, longitude) {
       hour12: true,
       timeZone: 'America/Chicago',
     });
-    updateStatus(`Updated at ${updatedAt}`);
+    const missing = [];
+    if (!hasGust) missing.push('Gust');
+    if (!hasUv) missing.push('UV');
+    if (!hasAqi) missing.push('AQI');
+    const missingText = missing.length ? ` — ${missing.join(', ')} unavailable` : '';
+    updateStatus(`Updated at ${updatedAt}${missingText}`);
 
     fetchNwsAlerts(latitude, longitude);
   } catch (error) {

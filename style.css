@@ -19,6 +19,49 @@ body {
   background: radial-gradient(circle at top, #18394f 0%, #071014 52%);
 }
 
+/* Background rotator layers */
+.bg-rotator {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+.bg-rotator .bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.55) contrast(1.05) saturate(0.95);
+  opacity: 0;
+  will-change: opacity;
+  animation: bgFade 18s infinite linear;
+}
+.bg-rotator .bg-day {
+  background-image: url('assets/bg-day.jpg');
+  animation-delay: 0s;
+}
+.bg-rotator .bg-night {
+  background-image: url('assets/bg-night.jpg');
+  animation-delay: 6s;
+}
+.bg-rotator .bg-rain {
+  background-image: url('assets/bg-rain.jpg');
+  animation-delay: 12s;
+}
+@keyframes bgFade {
+  0% { opacity: 0 }
+  5% { opacity: 1 }
+  30% { opacity: 1 }
+  35% { opacity: 0 }
+  100% { opacity: 0 }
+}
+
+/* Ensure dashboard content sits above background */
+.dashboard {
+  position: relative;
+  z-index: 1;
+}
+
 .dashboard {
   width: min(100%, 1600px);
   display: grid;
@@ -29,6 +72,7 @@ body {
 
 header {
   text-align: center;
+  margin-top: 12px;
 }
 
 h1 {
@@ -49,6 +93,18 @@ p {
   background: rgba(255, 255, 255, 0.06);
   color: #d0e2ff;
   font-size: 1rem;
+}
+
+.updated {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  color: #d0e2ff;
+  font-size: 0.9rem;
+  vertical-align: middle;
 }
 
 .weather-grid {

@@ -16,7 +16,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 12px;
-  background: radial-gradient(circle at top, #18394f 0%, #071014 52%);
+  background: transparent;
 }
 
 /* Background rotator layers */
@@ -25,6 +25,7 @@ body {
   inset: 0;
   z-index: -1;
   overflow: hidden;
+  background: radial-gradient(circle at top, rgba(24, 57, 79, 0.45) 0%, rgba(7, 16, 28, 0.9) 70%);
 }
 .bg-rotator .bg {
   position: absolute;
@@ -47,6 +48,13 @@ body {
 .bg-rotator .bg-rain {
   background-image: url('assets/bg-rain.jpg');
   animation-delay: 12s;
+}
+.bg-rotator::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(7, 18, 35, 0.15), rgba(7, 16, 28, 0.85));
+  pointer-events: none;
 }
 @keyframes bgFade {
   0% { opacity: 0 }
@@ -97,7 +105,7 @@ p {
 
 .updated {
   display: inline-block;
-  margin-left: 8px;
+  margin: 0;
   padding: 4px 8px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.06);

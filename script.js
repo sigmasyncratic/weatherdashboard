@@ -65,6 +65,45 @@ function getConditionText(code) {
   return weatherCodeMap[code] || 'Unknown';
 }
 
+function getWindDirectionLabel(degrees) {
+  if (degrees == null || Number.isNaN(degrees)) return '';
+  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const index = Math.round(((degrees % 360) / 45)) % 8;
+  return directions[index];
+}
+
+function getWindDirectionArrow(degrees) {
+  if (degrees == null || Number.isNaN(degrees)) return '';
+  const arrows = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+  const index = Math.round(((degrees % 360) / 45)) % 8;
+  return arrows[index];
+}
+
+function formatWind(speed, degrees) {
+  if (speed == null || Number.isNaN(speed)) return '--';
+  const directionLabel = getWindDirectionLabel(degrees);
+  const directionArrow = getWindDirectionArrow(degrees);
+  return directionLabel ? `${Math.round(speed)} mph ${directionArrow} ${directionLabel}` : `${Math.round(speed)} mph`;
+}
+
+function findClosestHourlyIndex(hourlyTimes, currentTime) {
+  if (!Array.isArray(hourlyTimes) || hourlyTimes.length === 0) return -1;
+  const currentMs = new Date(currentTime).getTime();
+  let bestIndex = hourlyTimes.indexOf(currentTime);
+  if (bestIndex !== -1) return bestIndex;
+
+  let minDiff = Infinity;
+  hourlyTimes.forEach((time, index) => {
+    const diff = Math.abs(new Date(time).getTime() - currentMs);
+    if (diff < minDiff) {
+      minDiff = diff;
+      bestIndex = index;
+    }
+  });
+
+  return bestIndex;
+}
+
 function formatAqiCategory(aqi) {
   if (aqi <= 50) return '(Good)';
   if (aqi <= 100) return '(Moderate)';
@@ -150,7 +189,7 @@ async function fetchWeather(latitude, longitude) {
     url.searchParams.set('current_weather', 'true');
     url.searchParams.set(
       'hourly',
-      'temperature_2m,precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m,uv_index,us_aqi'
+      'temperature_2m,precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m,winddirection_10m,uv_index,us_aqi'
     );
     url.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min,precipitation_probability_max');
     url.searchParams.set('timezone', 'America/Chicago');
@@ -169,13 +208,17 @@ async function fetchWeather(latitude, longitude) {
     }
 
     const { current_weather: currentWeather, daily, hourly } = data;
-    const currentIndex = hourly.time.indexOf(currentWeather.time);
+    const currentIndex = findClosestHourlyIndex(hourly.time, currentWeather.time);
 
     currentTempEl.textContent = formatTemperature(currentWeather.temperature);
-    currentWindEl.textContent = `${Math.round(currentWeather.windspeed)} mph`;
+    currentWindEl.textContent = formatWind(
+      currentWeather.windspeed,
+      currentWeather.winddirection || (currentIndex >= 0 && hourly.winddirection_10m ? hourly.winddirection_10m[currentIndex] : null)
+    );
     const hasGust = Array.isArray(hourly.wind_gusts_10m) && hourly.wind_gusts_10m.length > 0;
     const hasUv = Array.isArray(hourly.uv_index) && hourly.uv_index.length > 0;
     const hasAqi = Array.isArray(hourly.us_aqi) && hourly.us_aqi.length > 0;
+    const hasWindDirHourly = Array.isArray(hourly.winddirection_10m) && hourly.winddirection_10m.length > 0;
 
     currentGustEl.textContent =
       currentIndex >= 0 && hasGust && hourly.wind_gusts_10m[currentIndex] != null
@@ -289,4 +332,4 @@ setInterval(() => {
   if (isBusinessHours()) {
     fetchWeather(fixedLocation.latitude, fixedLocation.longitude);
   }
-}, 10 * 60 * 1000); // 10 minutes
+}, 15 * 60 * 1000); // 15 minutes

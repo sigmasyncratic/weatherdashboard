@@ -3,34 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weather Dashboard</title>
+    <title>Oklahoma City Weather</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <main class="dashboard">
       <header>
-        <h1>Weather Dashboard</h1>
-        <p>Forecast from the Open-Meteo API</p>
+        <h1>Oklahoma City Weather</h1>
+        <p>Current forecast, air quality, UV index, and NWS alerts for 35°28'24.32"N 97°30'12.91"W</p>
       </header>
 
-      <section class="controls">
-        <div class="location-inputs">
-          <label>
-            Latitude
-            <input id="latitude" type="number" step="0.0001" value="35.4676" />
-          </label>
-          <label>
-            Longitude
-            <input id="longitude" type="number" step="0.0001" value="-97.5164" />
-          </label>
-        </div>
-        <div class="actions">
-          <button id="currentLocationBtn">Use my location</button>
-          <button id="fetchWeatherBtn">Fetch Forecast</button>
-        </div>
-      </section>
-
-      <section id="status" class="status">Enter coordinates or use your location to get a forecast.</section>
+      <section id="status" class="status">Loading Oklahoma City weather…</section>
 
       <section class="weather-grid">
         <article class="current-weather card">
@@ -38,7 +21,11 @@
           <div class="current-value" id="currentTemp">--</div>
           <div class="current-details">
             <div><strong>Wind:</strong> <span id="currentWind">--</span></div>
+            <div><strong>Gust:</strong> <span id="currentGust">--</span></div>
+          </div>
+          <div class="current-details">
             <div><strong>Condition:</strong> <span id="currentCondition">--</span></div>
+            <div><strong>UV Index:</strong> <span id="uvIndex">--</span></div>
           </div>
         </article>
 
@@ -47,6 +34,17 @@
           <div class="summary-row"><strong>High:</strong> <span id="highTemp">--</span></div>
           <div class="summary-row"><strong>Low:</strong> <span id="lowTemp">--</span></div>
           <div class="summary-row"><strong>Rain chance:</strong> <span id="rainChance">--</span></div>
+          <div class="summary-row"><strong>AQI:</strong> <span id="airQuality">--</span></div>
+        </article>
+
+        <article class="rain-detail card">
+          <h2>Rain Timing</h2>
+          <p id="rainTiming">--</p>
+        </article>
+
+        <article class="alerts-detail card">
+          <h2>NWS Inclement Weather</h2>
+          <div id="nwsAlerts" class="alerts-list">--</div>
         </article>
       </section>
 

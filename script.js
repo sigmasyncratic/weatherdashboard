@@ -1,35 +1,21 @@
-const currentLocationBtn = document.getElementById('currentLocationBtn');
-const fetchWeatherBtn = document.getElementById('fetchWeatherBtn');
 const statusEl = document.getElementById('status');
-
-const latitudeInput = document.getElementById('latitude');
-const longitudeInput = document.getElementById('longitude');
 const currentTempEl = document.getElementById('currentTemp');
 const currentWindEl = document.getElementById('currentWind');
+const currentGustEl = document.getElementById('currentGust');
 const currentConditionEl = document.getElementById('currentCondition');
+const uvIndexEl = document.getElementById('uvIndex');
+const airQualityEl = document.getElementById('airQuality');
 const highTempEl = document.getElementById('highTemp');
 const lowTempEl = document.getElementById('lowTemp');
 const rainChanceEl = document.getElementById('rainChance');
+const rainTimingEl = document.getElementById('rainTiming');
+const nwsAlertsEl = document.getElementById('nwsAlerts');
 const forecastCardsEl = document.getElementById('forecastCards');
 
-const defaultLatitude = 35.4676;
-const defaultLongitude = -97.5164;
-const fixedLocation = { latitude: defaultLatitude, longitude: defaultLongitude };
-
-function parseCoordinates() {
-  const latitude = parseFloat(latitudeInput.value);
-  const longitude = parseFloat(longitudeInput.value);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    return null;
-  }
-  return { latitude, longitude };
-}
-
-function setDefaultCoordinates() {
-  latitudeInput.value = defaultLatitude.toFixed(4);
-  longitudeInput.value = defaultLongitude.toFixed(4);
-  return { latitude: defaultLatitude, longitude: defaultLongitude };
-}
+const fixedLocation = {
+  latitude: 35.473422,
+  longitude: -97.503586,
+};
 
 const weatherCodeMap = {
   0: 'Clear sky',
@@ -79,18 +65,76 @@ function getConditionText(code) {
   return weatherCodeMap[code] || 'Unknown';
 }
 
-function buildForecastCard(date, high, low, rainChance) {
+function formatAqiCategory(aqi) {
+  if (aqi <= 50) return '(Good)';
+  if (aqi <= 100) return '(Moderate)';
+  if (aqi <= 150) return '(Unhealthy for sensitive groups)';
+  if (aqi <= 200) return '(Unhealthy)';
+  if (aqi <= 300) return '(Very unhealthy)';
+  return '(Hazardous)';
+}
+
+function buildForecastCard(dateLabel, high, low, rainChance) {
   const item = document.createElement('div');
   item.className = 'forecast-item';
   item.innerHTML = `
     <div>
-      <strong>${date}</strong>
+      <strong>${dateLabel}</strong>
       <div><span>High:</span> ${formatTemperature(high)}</div>
       <div><span>Low:</span> ${formatTemperature(low)}</div>
     </div>
     <div>${formatPercentage(rainChance)}</div>
   `;
   return item;
+}
+
+function getDailyLabel(dateString) {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    weekday: 'short',
+    timeZone: 'America/Chicago',
+  });
+}
+
+function formatRainTiming(hourly) {
+  const now = new Date();
+  const todayKey = now.toLocaleDateString('en-CA', {
+    timeZone: 'America/Chicago',
+  });
+
+  const rainyHours = hourly.time
+    .map((time, index) => ({ time, index }))
+    .filter(({ time }) => time.startsWith(todayKey))
+    .filter(({ index }) => {
+      const chance = hourly.precipitation_probability[index];
+      const precipitation = hourly.precipitation[index];
+      return chance >= 40 || precipitation >= 0.02;
+    })
+    .map(({ time, index }) => ({
+      date: new Date(time),
+      index,
+    }));
+
+  if (rainyHours.length === 0) {
+    return 'No rain expected today.';
+  }
+
+  const first = rainyHours[0].date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'America/Chicago',
+  });
+  const last = rainyHours[rainyHours.length - 1].date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'America/Chicago',
+  });
+
+  if (first === last) {
+    return `Rain expected around ${first}.`;
+  }
+  return `Rain expected between ${first} and ${last}.`;
 }
 
 async function fetchWeather(latitude, longitude) {
@@ -101,7 +145,10 @@ async function fetchWeather(latitude, longitude) {
     url.searchParams.set('latitude', latitude);
     url.searchParams.set('longitude', longitude);
     url.searchParams.set('current_weather', 'true');
-    url.searchParams.set('hourly', 'temperature_2m,rain,relative_humidity_2m,dew_point_2m,precipitation_probability,precipitation,uv_index');
+    url.searchParams.set(
+      'hourly',
+      'temperature_2m,precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m,uv_index,us_aqi'
+    );
     url.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min,precipitation_probability_max');
     url.searchParams.set('timezone', 'America/Chicago');
     url.searchParams.set('wind_speed_unit', 'mph');
@@ -114,24 +161,41 @@ async function fetchWeather(latitude, longitude) {
     }
 
     const data = await response.json();
-    if (!data.current_weather || !data.daily) {
+    if (!data.current_weather || !data.daily || !data.hourly) {
       throw new Error('Incomplete forecast response.');
     }
 
-    const { current_weather: currentWeather, daily } = data;
+    const { current_weather: currentWeather, daily, hourly } = data;
+    const currentIndex = hourly.time.indexOf(currentWeather.time);
 
     currentTempEl.textContent = formatTemperature(currentWeather.temperature);
     currentWindEl.textContent = `${Math.round(currentWeather.windspeed)} mph`;
+    currentGustEl.textContent =
+      currentIndex >= 0 && hourly.wind_gusts_10m[currentIndex] != null
+        ? `${Math.round(hourly.wind_gusts_10m[currentIndex])} mph`
+        : '--';
     currentConditionEl.textContent = getConditionText(currentWeather.weathercode);
+    uvIndexEl.textContent =
+      currentIndex >= 0 && hourly.uv_index[currentIndex] != null
+        ? `${hourly.uv_index[currentIndex].toFixed(1)}`
+        : '--';
 
     highTempEl.textContent = formatTemperature(daily.temperature_2m_max[0]);
     lowTempEl.textContent = formatTemperature(daily.temperature_2m_min[0]);
     rainChanceEl.textContent = formatPercentage(daily.precipitation_probability_max[0]);
 
+    const aqiValue = currentIndex >= 0 ? hourly.us_aqi[currentIndex] : null;
+    airQualityEl.textContent =
+      aqiValue != null
+        ? `${Math.round(aqiValue)} ${formatAqiCategory(Math.round(aqiValue))}`
+        : '--';
+
+    rainTimingEl.textContent = formatRainTiming(hourly);
+
     forecastCardsEl.innerHTML = '';
     daily.time.slice(1, 5).forEach((time, index) => {
       const forecastCard = buildForecastCard(
-        time,
+        getDailyLabel(time),
         daily.temperature_2m_max[index + 1],
         daily.temperature_2m_min[index + 1],
         daily.precipitation_probability_max[index + 1]
@@ -139,67 +203,78 @@ async function fetchWeather(latitude, longitude) {
       forecastCardsEl.appendChild(forecastCard);
     });
 
-    updateStatus(`Forecast loaded for ${latitude.toFixed(4)}, ${longitude.toFixed(4)}.`);
+    const updatedAt = new Date().toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'America/Chicago',
+    });
+    updateStatus(`Updated at ${updatedAt}`);
+
+    fetchNwsAlerts(latitude, longitude);
   } catch (error) {
     console.error(error);
     updateStatus(`Unable to load weather: ${error.message}`, true);
+    nwsAlertsEl.textContent = 'Unable to load NWS alerts.';
   }
 }
 
-currentLocationBtn.addEventListener('click', async () => {
-  if (!navigator.geolocation) {
-    updateStatus('Geolocation is not available in your browser.', true);
-    return;
+async function fetchNwsAlerts(latitude, longitude) {
+  try {
+    const url = `https://api.weather.gov/alerts/active?point=${latitude},${longitude}`;
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/geo+json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`NWS alert request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data.features) {
+      throw new Error('NWS alert response missing features.');
+    }
+
+    if (data.features.length === 0) {
+      nwsAlertsEl.textContent = 'No active NWS warnings or watches at this location.';
+      return;
+    }
+
+    nwsAlertsEl.innerHTML = '';
+    data.features.slice(0, 4).forEach((alert) => {
+      const alertItem = document.createElement('div');
+      const event = alert.properties.event || 'Alert';
+      const headline = alert.properties.headline || event;
+      const ending = alert.properties.ends
+        ? new Date(alert.properties.ends).toLocaleString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: 'America/Chicago',
+          })
+        : 'until further notice';
+      alertItem.textContent = `${headline} — ${ending}`;
+      nwsAlertsEl.appendChild(alertItem);
+    });
+  } catch (error) {
+    console.error(error);
+    nwsAlertsEl.textContent = 'Unable to load NWS alerts.';
   }
-
-  updateStatus('Requesting your location…');
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      const { latitude, longitude } = position.coords;
-      latitudeInput.value = latitude.toFixed(4);
-      longitudeInput.value = longitude.toFixed(4);
-      fetchWeather(latitude, longitude);
-    },
-    (error) => {
-      updateStatus(
-        `Location unavailable: ${error.message}. Please enter coordinates manually or click Fetch Forecast.`,
-        true
-      );
-    },
-    { enableHighAccuracy: true, timeout: 12000 }
-  );
-});
-
-fetchWeatherBtn.addEventListener('click', () => {
-  const coords = parseCoordinates();
-  if (!coords) {
-    updateStatus('Please enter valid latitude and longitude values.', true);
-    return;
-  }
-  fetchWeather(coords.latitude, coords.longitude);
-});
-
-if (!navigator.geolocation) {
-  currentLocationBtn.disabled = true;
-  currentLocationBtn.textContent = 'Geolocation unavailable';
 }
 
-setDefaultCoordinates();
 fetchWeather(fixedLocation.latitude, fixedLocation.longitude);
 
-// Auto-refresh every 15 minutes during business hours (7am-6pm Mon-Fri)
 function isBusinessHours() {
   const now = new Date();
   const day = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
   const hour = now.getHours();
-  return day >= 1 && day <= 5 && hour >= 7 && hour < 18;
+  return day >= 1 && day <= 5 && hour >= 8 && hour < 17;
 }
 
 setInterval(() => {
   if (isBusinessHours()) {
-    const coords = parseCoordinates();
-    if (coords) {
-      fetchWeather(coords.latitude, coords.longitude);
-    }
+    fetchWeather(fixedLocation.latitude, fixedLocation.longitude);
   }
-}, 15 * 60 * 1000); // 15 minutes
+}, 10 * 60 * 1000); // 10 minutes

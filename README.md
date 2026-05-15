@@ -11,10 +11,11 @@ A simple weather forecast dashboard using the Open-Meteo API.
 ## Usage
 
 1. Open `index.html` in a browser.
-2. Enter latitude and longitude, or click **Use my location**.
-3. Click **Fetch Forecast** to load the latest weather.
+2. The dashboard loads a forecast for Oklahoma City, OK by default.
+3. Click **Fetch Forecast** to refresh the latest weather or edit the coordinates if needed.
 
 ## Notes
 
 - Uses Open-Meteo public API with no API key required.
+- Loads fixed coordinates for Oklahoma City, OK by default.
 - Shows current conditions and a short multi-day forecast.

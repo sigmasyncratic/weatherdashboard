@@ -14,6 +14,7 @@ const forecastCardsEl = document.getElementById('forecastCards');
 
 const defaultLatitude = 35.4676;
 const defaultLongitude = -97.5164;
+const fixedLocation = { latitude: defaultLatitude, longitude: defaultLongitude };
 
 function parseCoordinates() {
   const latitude = parseFloat(latitudeInput.value);
@@ -120,7 +121,7 @@ async function fetchWeather(latitude, longitude) {
     const { current_weather: currentWeather, daily } = data;
 
     currentTempEl.textContent = formatTemperature(currentWeather.temperature);
-    currentWindEl.textContent = `${Math.round(currentWeather.windspeed)} km/h`;
+    currentWindEl.textContent = `${Math.round(currentWeather.windspeed)} mph`;
     currentConditionEl.textContent = getConditionText(currentWeather.weathercode);
 
     highTempEl.textContent = formatTemperature(daily.temperature_2m_max[0]);
@@ -178,8 +179,13 @@ fetchWeatherBtn.addEventListener('click', () => {
   fetchWeather(coords.latitude, coords.longitude);
 });
 
-const initialCoords = parseCoordinates() || setDefaultCoordinates();
-fetchWeather(initialCoords.latitude, initialCoords.longitude);
+if (!navigator.geolocation) {
+  currentLocationBtn.disabled = true;
+  currentLocationBtn.textContent = 'Geolocation unavailable';
+}
+
+setDefaultCoordinates();
+fetchWeather(fixedLocation.latitude, fixedLocation.longitude);
 
 // Auto-refresh every 15 minutes during business hours (7am-6pm Mon-Fri)
 function isBusinessHours() {

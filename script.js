@@ -74,8 +74,11 @@ function getWindDirectionLabel(degrees) {
 
 function getWindDirectionArrow(degrees) {
   if (degrees == null || Number.isNaN(degrees)) return '';
+  // Winddirection is the direction the wind is coming from.
+  // Arrows should point the direction the wind is moving toward.
+  const movementDegrees = (degrees + 180) % 360;
   const arrows = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
-  const index = Math.round(((degrees % 360) / 45)) % 8;
+  const index = Math.round((movementDegrees % 360) / 45) % 8;
   return arrows[index];
 }
 
@@ -102,6 +105,25 @@ function findClosestHourlyIndex(hourlyTimes, currentTime) {
   });
 
   return bestIndex;
+}
+
+function findNearestHourlyValue(hourlyArray, index) {
+  if (!Array.isArray(hourlyArray) || hourlyArray.length === 0) return null;
+  if (index >= 0 && hourlyArray[index] != null) return hourlyArray[index];
+
+  let bestValue = null;
+  let bestDiff = Infinity;
+  const center = index >= 0 ? index : 0;
+  hourlyArray.forEach((value, idx) => {
+    if (value == null) return;
+    const diff = Math.abs(idx - center);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestValue = value;
+    }
+  });
+
+  return bestValue;
 }
 
 function formatAqiCategory(aqi) {
@@ -218,7 +240,6 @@ async function fetchWeather(latitude, longitude) {
     const hasGust = Array.isArray(hourly.wind_gusts_10m) && hourly.wind_gusts_10m.length > 0;
     const hasUv = Array.isArray(hourly.uv_index) && hourly.uv_index.length > 0;
     const hasAqi = Array.isArray(hourly.us_aqi) && hourly.us_aqi.length > 0;
-    const hasWindDirHourly = Array.isArray(hourly.winddirection_10m) && hourly.winddirection_10m.length > 0;
 
     currentGustEl.textContent =
       currentIndex >= 0 && hasGust && hourly.wind_gusts_10m[currentIndex] != null
@@ -234,7 +255,7 @@ async function fetchWeather(latitude, longitude) {
     lowTempEl.textContent = formatTemperature(daily.temperature_2m_min[0]);
     rainChanceEl.textContent = formatPercentage(daily.precipitation_probability_max[0]);
 
-    const aqiValue = currentIndex >= 0 && hasAqi ? hourly.us_aqi[currentIndex] : null;
+    const aqiValue = findNearestHourlyValue(hourly.us_aqi, currentIndex);
     airQualityEl.textContent =
       aqiValue != null
         ? `${Math.round(aqiValue)} ${formatAqiCategory(Math.round(aqiValue))}`

@@ -38,15 +38,15 @@ body {
   animation: bgFade 18s infinite linear;
 }
 .bg-rotator .bg-day {
-  background-image: url('assets/bg-day.jpg');
+  background-image: url('./assets/bg-day.jpg');
   animation-delay: 0s;
 }
 .bg-rotator .bg-night {
-  background-image: url('assets/bg-night.jpg');
+  background-image: url('./assets/bg-night.jpg');
   animation-delay: 6s;
 }
 .bg-rotator .bg-rain {
-  background-image: url('assets/bg-rain.jpg');
+  background-image: url('./assets/bg-rain.jpg');
   animation-delay: 12s;
 }
 .bg-rotator::after {

@@ -340,6 +340,37 @@ async function fetchNwsAlerts(latitude, longitude) {
   }
 }
 
+function setUiScale(scale) {
+  if (!scale) return;
+  document.documentElement.style.setProperty('--ui-scale', String(scale));
+  try { localStorage.setItem('ui-scale', String(scale)); } catch (e) {}
+}
+
+function autoSetUiScale() {
+  try {
+    const stored = localStorage.getItem('ui-scale');
+    if (stored) {
+      document.documentElement.style.setProperty('--ui-scale', stored);
+      return;
+    }
+  } catch (e) {}
+
+  const w = window.innerWidth || document.documentElement.clientWidth;
+  let scale = 1;
+  if (w >= 3840) scale = 1.5;
+  else if (w >= 2560) scale = 1.35;
+  else if (w >= 1920) scale = 1.15;
+  else if (w >= 1366) scale = 1.05;
+  document.documentElement.style.setProperty('--ui-scale', String(scale));
+}
+
+autoSetUiScale();
+let _uiScaleTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_uiScaleTimer);
+  _uiScaleTimer = setTimeout(autoSetUiScale, 200);
+});
+
 fetchWeather(fixedLocation.latitude, fixedLocation.longitude);
 
 function isBusinessHours() {
